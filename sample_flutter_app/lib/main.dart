@@ -1,65 +1,179 @@
 import 'package:flutter/material.dart';
 
-// In the Navigate to a new screen and back recipe, you learned how to navigate to a new screen by creating a new route and pushing it to the Navigator.
-//
-// However, if you need to navigate to the same screen in many parts of your app, this approach can result in code duplication.
-// The solution is to define a named route, and use the named route for navigation.
-class FirstScreen extends StatelessWidget {
-  const FirstScreen({super.key});
+// You can pass any object to the arguments parameter.
+// In this example, create a class that contains both
+// a customizable title and message.
+class ScreenArguments {
+  final String title;
+  final String message;
+
+  ScreenArguments(this.title, this.message);
+}
+
+// A Widget that extracts the necessary arguments from
+// the ModalRoute.
+class ExtractArgumentsScreen extends StatelessWidget {
+  const ExtractArgumentsScreen({super.key});
+
+  static const routeName = '/extractArguments';
+
+  @override
+  Widget build(BuildContext context) {
+    // Extract the arguments from the current ModalRoute
+    // settings and cast them as ScreenArguments.
+    final args = ModalRoute.of(context)!.settings.arguments as ScreenArguments;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(args.title),
+      ),
+      body: Center(
+        child: Text(args.message),
+      ),
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      routes: {
+        ExtractArgumentsScreen.routeName: (context) => const ExtractArgumentsScreen(),
+      },
+      // Provide a function to handle named routes.
+      // Use this function to identify the named
+      // route being pushed, and create the correct
+      // Screen.
+      onGenerateRoute: (settings) {
+        // If you push the PassArguments route
+        if (settings.name == PassArgumentsScreen.routeName) {
+          // Cast the arguments to the correct
+          // type: ScreenArguments.
+          final args = settings.arguments as ScreenArguments;
+
+          // Then, extract the required data from
+          // the arguments and pass the data to the
+          // correct screen.
+          return MaterialPageRoute(
+            builder: (context) {
+              return PassArgumentsScreen(
+                title: args.title,
+                message: args.message,
+              );
+            },
+          );
+        }
+        // The code only supports
+        // PassArgumentsScreen.routeName right now.
+        // Other values need to be implemented if we
+        // add them. The assertion here will help remind
+        // us of that higher up in the call stack, since
+        // this assertion would otherwise fire somewhere
+        // in the framework.
+        assert(false, 'Need to implement ${settings.name}');
+        return null;
+      },
+      title: 'Navigation with Arguments',
+      home: const HomeScreen(),
+    );
+  }
+}
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('First Screen'),
+        title: const Text('Home Screen'),
       ),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // Navigate to the second screen using a named route.
-            Navigator.pushNamed(context, '/second');
-          },
-          child: const Text('Launch screen'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // A button that navigates to a named route.
+            // The named route extracts the arguments
+            // by itself.
+            ElevatedButton(
+              onPressed: () {
+                // When the user taps the button,
+                // navigate to a named route and
+                // provide the arguments as an optional
+                // parameter.
+                Navigator.pushNamed(
+                  context,
+                  ExtractArgumentsScreen.routeName,
+                  arguments: ScreenArguments(
+                    'Extract Arguments Screen',
+                    'This message is extracted in the build method.',
+                  ),
+                );
+              },
+              child: const Text('Navigate to screen that extracts arguments'),
+            ),
+            // A button that navigates to a named route.
+            // For this route, extract the arguments in
+            // the onGenerateRoute function and pass them
+            // to the screen.
+            ElevatedButton(
+              onPressed: () {
+                // When the user taps the button, navigate
+                // to a named route and provide the arguments
+                // as an optional parameter.
+                Navigator.pushNamed(
+                  context,
+                  PassArgumentsScreen.routeName,
+                  arguments: ScreenArguments(
+                    'Accept Arguments Screen',
+                    'This message is extracted in the onGenerateRoute '
+                        'function.',
+                  ),
+                );
+              },
+              child: const Text('Navigate to a named that accepts arguments'),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class SecondScreen extends StatelessWidget {
-  const SecondScreen({super.key});
+// A Widget that accepts the necessary arguments via the
+// constructor.
+class PassArgumentsScreen extends StatelessWidget {
+  static const routeName = '/passArguments';
+
+  final String title;
+  final String message;
+
+  // This Widget accepts the arguments as constructor
+  // parameters. It does not extract the arguments from
+  // the ModalRoute.
+  //
+  // The arguments are extracted by the onGenerateRoute
+  // function provided to the MaterialApp widget.
+  const PassArgumentsScreen({
+    super.key,
+    required this.title,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Second Screen'),
+        title: Text(title),
       ),
       body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            // Navigate back to the first screen by popping the current route
-            // off the stack.
-            Navigator.pop(context);
-          },
-          child: const Text('Go back!'),
-        ),
+        child: Text(message),
       ),
     );
   }
 }
 
-void main() {
-  runApp(MaterialApp(
-    title: 'Named Routes Demo',
-    // Start the app with the "/" named route. In this case, the app starts
-    // on the FirstScreen widget.
-    initialRoute: '/',
-    routes: {
-      // When navigating to the "/" route, build the FirstScreen widget.
-      '/': (context) => const FirstScreen(),
-      // When navigating to the "/second" route, build the SecondScreen widget.
-      '/second': (context) => const SecondScreen(),
-    }
-  ));
-}
+void main() => runApp(const MyApp());
